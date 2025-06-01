@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HTL Maturanten 2025 - Video Feed</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --text-color: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: pan-y;
+        }
+
+        body {
+            background-color: #000;
+            color: white;
+            overflow-x: hidden;
+            height: 100vh;
+            overscroll-behavior-y: contain;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            text-align: center;
+            padding: 1rem;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .video-feed {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            padding-top: 70px;
+            scroll-behavior: smooth;
+        }
+        .video-loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            animation: spin 1s linear infinite;
+            z-index: 2;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .video-container {
+            width: 100%;
+            height: calc(100vh - 70px);
+            scroll-snap-align: start;
+            position: relative;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .video-player {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+            z-index: 2;
+        }
+
+        .video-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .video-desc {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 1rem;
+            color: #999;
+            scroll-snap-align: start;
+            height: calc(100vh - 70px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shorts-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ff0050;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            z-index: 3;
+        }
+
+        .mute-button {
+            position: absolute;
+            bottom: 70px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            z-index: 3;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .overview-button {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 5px 15px;
+            margin-right: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.3s;
+        }
+
+        .overview-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .video-feed::-webkit-scrollbar {
+            display: none;
+        }
+        .video-feed {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>HTL Maturanten 2025</h1>
+            <p class="subtitle">Video Feed</p>
+        </div>
+        <a href="/overview" class="overview-button">
+            <span>Overview</span>
+        </a>
+    </header>
+
+    <div class="video-feed" id="videoFeed"></div>
+
+    <script>
+        // Video data embedded directly in HTML
+        const allVideos = [
+            { id: "ES1y_c4nDv8", type: "shorts", title: "HTL Moments #1", description: "Funny classroom moment" },
+            { id: "VooHnj3GS7M", type: "shorts", title: "HTL Moments #2", description: "Project work in progress" },
+            { id: "WkbgLPLa4qs", type: "shorts", title: "HTL Moments #3", description: "Break time with friends" },
+            { id: "4-rIpg57FE8", type: "shorts", title: "HTL Moments #4", description: "Technical experiment" },
+            { id: "GvOadXplZns", type: "shorts", title: "HTL Moments #5", description: "Workshop activities" },
+            { id: "nMly0PZ2rLM", type: "shorts", title: "HTL Moments #6", description: "Group project meeting" },
+            { id: "MtXPGs-WBmc", type: "shorts", title: "HTL Moments #7", description: "Presentation practice" },
+            { id: "SqeMvQYxPKQ", type: "shorts", title: "HTL Moments #8", description: "Lab experiment" },
+            { id: "g7gUKwltFSE", type: "shorts", title: "HTL Moments #9", description: "Team building activity" },
+            { id: "73MmNPQPVxY", type: "shorts", title: "HTL Moments #10", description: "Classroom prank" },
+            { id: "8IUiHY3-Pso", type: "shorts", title: "HTL Moments #11", description: "Technical drawing session" },
+            { id: "-gkSNJbcvMQ", type: "shorts", title: "HTL Moments #12", description: "Break time fun" },
+            { id: "p12jWAW8j04", type: "shorts", title: "HTL Moments #13", description: "Working on prototypes" },
+            { id: "o-kSNB39wwk", type: "shorts", title: "HTL Moments #14", description: "Field trip memory" },
+            { id: "bwqT9O17FaI", type: "shorts", title: "HTL Moments #15", description: "Exam preparation" },
+            { id: "UYhkSqPVNbs", type: "shorts", title: "HTL Moments #16", description: "School event" },
+            { id: "Cgyj2eBWwC8", type: "shorts", title: "HTL Moments #17", description: "Working in the lab" },
+            { id: "QuyeRXh8pjo", type: "shorts", title: "HTL Moments #18", description: "Group discussion" },
+            { id: "tVkCyXyMJbg", type: "shorts", title: "HTL Moments #19", description: "Technical challenge" },
+            { id: "vp7oWCk0xIs", type: "shorts", title: "HTL Moments #20", description: "Classroom moment" },
+            { id: "Jl1gjuK4Vms", type: "shorts", title: "HTL Moments #21", description: "Project presentation" },
+            { id: "dlChfA2mJtY", type: "shorts", title: "HTL Moments #22", description: "Workshop session" },
+            { id: "mfjqtz00LkQ", type: "shorts", title: "HTL Moments #23", description: "Team work" },
+            { id: "xhnbtiJ0vy0", type: "shorts", title: "HTL Moments #24", description: "Technical demonstration" },
+            { id: "43rszHMsjII", type: "shorts", title: "HTL Moments #25", description: "School festival" },
+            { id: "RCJ2Md7qCu4", type: "shorts", title: "HTL Moments #26", description: "Practical exam" },
+            { id: "-Qd1Dpkgod4", type: "shorts", title: "HTL Moments #27", description: "Study group" },
+            { id: "cioW3zpHsZ4", type: "shorts", title: "HTL Moments #28", description: "Science experiment" },
+            { id: "R1BNea-8ig4", type: "shorts", title: "HTL Moments #29", description: "Classroom activity" },
+            { id: "-hIYTEqRiBg", type: "shorts", title: "HTL Moments #30", description: "Final project work" }
+        ];
+
+        // Configuration
+        const config = {
+            videosPerLoad: 5,
+            preloadAdjacent: 1,
+            randomizeOrder: true,
+            preloadVideos: true,
+            bufferSize: 3
+        };
+
+        let loadedVideos = 0;
+        let isLoading = false;
+        let currentVideoIndex = 0;
+        let videoElements = [];
+        let videoIframes = [];
+        let observer;
+        let displayVideos = [];
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Randomize video order if enabled
+            if (config.randomizeOrder) {
+                displayVideos = [...allVideos];
+                shuffleArray(displayVideos);
+            } else {
+                displayVideos = [...allVideos];
+            }
+            
+            loadMoreVideos();
+            setupSwipeGestures();
+            document.getElementById('videoFeed').addEventListener('scroll', handleScroll);
+        });
+
+        // Fisher-Yates shuffle algorithm
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+
+        // Load more videos into the feed
+        function loadMoreVideos() {
+            if (isLoading || loadedVideos >= displayVideos.length) {
+                document.getElementById('loadingIndicator')?.remove();
+                return;
+            }
+
+            isLoading = true;
+            const videoFeed = document.getElementById('videoFeed');
+            
+            // Remove existing loading indicator if present
+            document.getElementById('loadingIndicator')?.remove();
+
+            const fragment = document.createDocumentFragment();
+
+            const endIndex = Math.min(loadedVideos + config.videosPerLoad, displayVideos.length);
+            
+            for (let i = loadedVideos; i < endIndex; i++) {
+                const video = displayVideos[i];
+                const videoElement = createVideoElement(video, i);
+                fragment.appendChild(videoElement);
+                videoElements.push(videoElement);
+            }
+
+            // Add new loading indicator if there are more videos to load
+            if (endIndex < displayVideos.length) {
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'loading';
+                loadingDiv.id = 'loadingIndicator';
+                loadingDiv.textContent = 'Loading more videos...';
+                fragment.appendChild(loadingDiv);
+            }
+
+            videoFeed.appendChild(fragment);
+            loadedVideos = endIndex;
+            
+            // Setup observer for newly loaded videos
+            if (!observer) {
+                setupIntersectionObserver();
+            } else {
+                // Observe newly added elements
+                for (let i = loadedVideos - config.videosPerLoad; i < loadedVideos; i++) {
+                    if (videoElements[i]) {
+                        observer.observe(videoElements[i]);
+                    }
+                }
+                if (endIndex < displayVideos.length) {
+                    observer.observe(document.getElementById('loadingIndicator'));
+                }
+            }
+            
+            isLoading = false;
+        }
+
+        // Add this function to preload adjacent videos
+        function preloadAdjacentVideos(currentIndex) {
+            const start = Math.max(0, currentIndex - config.preloadAdjacent);
+            const end = Math.min(videoIframes.length - 1, currentIndex + config.preloadAdjacent);
+            
+            for (let i = start; i <= end; i++) {
+                if (i !== currentIndex && videoIframes[i] && videoIframes[i].dataset.ready === 'false') {
+                    // Load but don't play
+                    videoIframes[i].src = videoIframes[i].src.replace('autoplay=1', 'autoplay=0');
+                    videoIframes[i].dataset.preloaded = 'true';
+                }
+            }
+        }
+
+        // Create a video element
+        function createVideoElement(videoData, index) {
+            const container = document.createElement('div');
+            container.className = 'video-container';
+            container.dataset.index = index;
+            
+            // Add loading spinner
+            const spinner = document.createElement('div');
+            spinner.className = 'video-loading-spinner';
+            container.appendChild(spinner);
+
+            const isShort = videoData.type === 'shorts';
+            const videoSrc = isShort 
+                ? `https://www.youtube.com/embed/${videoData.id}?autoplay=1&mute=1&playsinline=1&loop=1&controls=0&enablejsapi=1&playlist=${videoData.id}&rel=0&modestbranding=1&fs=0` 
+                : `https://www.youtube.com/embed/${videoData.id}?autoplay=1&mute=1&playsinline=1&loop=1&controls=0&enablejsapi=1&playlist=${videoData.id}&rel=0&modestbranding=1&fs=0`;
+
+            const iframe = document.createElement('iframe');
+            iframe.src = videoSrc;
+            iframe.className = 'video-player';
+            iframe.id = `video-${index}`;
+            iframe.setAttribute('frameborder', '0');
+            iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+            iframe.setAttribute('allowfullscreen', '');
+            iframe.dataset.ready = 'false';
+
+            // More reliable way to detect when YouTube player is ready
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+            // This will be called by YouTube API
+            window.onYouTubeIframeAPIReady = function() {
+                iframe.contentWindow.postMessage('{"event":"listening","id":"'+iframe.id+'"}', '*');
+            };
+
+            // Listen for YouTube player ready event
+            window.addEventListener('message', function(event) {
+                if (event.origin !== 'https://www.youtube.com') return;
+                
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.id === iframe.id && data.event === 'onReady') {
+                        spinner.remove();
+                        iframe.dataset.ready = 'true';
+                    }
+                } catch (e) {
+                    console.error('Error parsing YouTube message:', e);
+                }
+            });
+
+            videoIframes[index] = iframe;
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'video-info';
+
+            const title = document.createElement('h3');
+            title.className = 'video-title';
+            title.textContent = videoData.title;
+
+            const desc = document.createElement('p');
+            desc.className = 'video-desc';
+            desc.textContent = videoData.description;
+
+            infoDiv.appendChild(title);
+            infoDiv.appendChild(desc);
+            container.appendChild(iframe);
+            container.appendChild(infoDiv);
+
+            // Add mute button
+            const muteButton = document.createElement('button');
+            muteButton.className = 'mute-button';
+            muteButton.innerHTML = '🔊';
+            muteButton.dataset.muted = 'false';
+            muteButton.onclick = function() {
+                toggleMute(index);
+            };
+            container.appendChild(muteButton);
+
+            if (isShort) {
+                const badge = document.createElement('div');
+                badge.className = 'shorts-badge';
+                badge.textContent = 'SHORTS';
+                infoDiv.appendChild(badge);
+            }
+
+            // Fallback: Remove spinner after 5 seconds if YouTube doesn't respond
+            setTimeout(() => {
+                if (spinner.parentNode) {
+                    spinner.remove();
+                }
+            }, 5000);
+
+            return container;
+        }
+
+        // Toggle mute for a specific video
+        function toggleMute(index) {
+            const iframe = videoIframes[index];
+            const muteButton = iframe.parentElement.querySelector('.mute-button');
+            
+            if (iframe && iframe.dataset.ready === 'true') {
+                if (muteButton.dataset.muted === 'true') {
+                    // Unmute
+                    iframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+                    muteButton.innerHTML = '🔊';
+                    muteButton.dataset.muted = 'false';
+                } else {
+                    // Mute
+                    iframe.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+                    muteButton.innerHTML = '🔇';
+                    muteButton.dataset.muted = 'true';
+                }
+            }
+        }
+
+        // Set up intersection observer to detect which video is in view
+        function setupIntersectionObserver() {
+            observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    const index = parseInt(entry.target.dataset.index);
+                    if (isNaN(index)) return;
+
+                    if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
+                        currentVideoIndex = index;
+                        playVideo(index);
+                        preloadAdjacentVideos(index);
+                        
+                        // Pause all other videos
+                        for (let i = 0; i < videoIframes.length; i++) {
+                            if (i !== index && videoIframes[i] && videoIframes[i].dataset.ready === 'true') {
+                                pauseVideo(i);
+                            }
+                        }
+                    }
+                });
+            }, { 
+                threshold: [0, 0.5, 0.7, 1.0],
+                rootMargin: "0px 0px -100px 0px"
+            });
+
+            // Observe all video elements
+            videoElements.forEach(el => observer.observe(el));
+        }
+
+        // Handle scroll events
+        // Replace your current handleScroll with this more efficient version
+        function handleScroll() {
+            if (isLoading) return;
+            
+            const videoFeed = document.getElementById('videoFeed');
+            const viewportHeight = window.innerHeight;
+            const scrollPosition = videoFeed.scrollTop + (viewportHeight / 2);
+            
+            // Find which video container is at the center of the viewport
+            let newIndex = currentVideoIndex;
+            let minDistance = Infinity;
+            
+            // Only check nearby videos for better performance
+            const start = Math.max(0, currentVideoIndex - 3);
+            const end = Math.min(videoElements.length - 1, currentVideoIndex + 3);
+            
+            for (let i = start; i <= end; i++) {
+                const element = videoElements[i];
+                if (!element) continue;
+                
+                const rect = element.getBoundingClientRect();
+                const elementCenter = rect.top + (rect.height / 2) + videoFeed.scrollTop;
+                const distance = Math.abs(elementCenter - scrollPosition);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    newIndex = i;
+                }
+            }
+            
+            if (newIndex !== currentVideoIndex) {
+                // Pause current video first
+                if (videoIframes[currentVideoIndex]) {
+                    try {
+                        videoIframes[currentVideoIndex].contentWindow.postMessage(
+                            '{"event":"command","func":"pauseVideo","args":""}', '*'
+                        );
+                    } catch (e) {
+                        console.log("Couldn't pause current video");
+                    }
+                }
+                
+                currentVideoIndex = newIndex;
+                playVideo(currentVideoIndex);
+            }
+            
+            // Check if we need to load more videos
+            const scrollBottom = videoFeed.scrollTop + viewportHeight;
+            const feedHeight = videoFeed.scrollHeight;
+            
+            if (feedHeight - scrollBottom < viewportHeight * 2 && !isLoading && loadedVideos < displayVideos.length) {
+                loadMoreVideos();
+            }
+        }
+
+        // Play a specific video
+        // Modify the playVideo function to be more aggressive with loading
+        function playVideo(index) {
+            // First play the current video
+            playSingleVideo(index);
+            
+            // Then buffer adjacent videos
+            const start = Math.max(0, index - Math.floor(config.bufferSize/2));
+            const end = Math.min(videoIframes.length - 1, index + Math.ceil(config.bufferSize/2));
+            
+            for (let i = start; i <= end; i++) {
+                if (i !== index) {
+                    bufferVideo(i);
+                }
+            }
+        }
+
+        function bufferVideo(index) {
+            const iframe = videoIframes[index];
+            if (!iframe || iframe.dataset.ready === 'true') return;
+            
+            iframe.onload = function() {
+                this.dataset.ready = 'true';
+            };
+            
+            // Load but don't play
+            iframe.src = iframe.src.replace('autoplay=1', 'autoplay=0');
+        }
+
+        function playSingleVideo(index) {
+            const iframe = videoIframes[index];
+            if (!iframe) return;
+            
+            if (iframe.dataset.ready === 'false') {
+                iframe.onload = function() {
+                    this.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                    this.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+                    this.dataset.ready = 'true';
+                    
+                    const muteButton = this.parentElement.querySelector('.mute-button');
+                    if (muteButton) {
+                        muteButton.innerHTML = '🔊';
+                        muteButton.dataset.muted = 'false';
+                    }
+                };
+                iframe.src = iframe.src;
+            } else {
+                try {
+                    iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                    iframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');
+                } catch (e) {
+                    console.error("Error playing video:", e);
+                    iframe.src = iframe.src;
+                }
+            }
+        }c
+
+        // Pause a specific video
+        function pauseVideo(index) {
+            const iframe = videoIframes[index];
+            if (!iframe) return;
+            
+            try {
+                if (iframe.dataset.ready === 'true') {
+                    iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                } else {
+                    // If not ready yet, prevent autoplay by modifying the URL
+                    iframe.src = iframe.src.replace('autoplay=1', 'autoplay=0');
+                }
+            } catch (e) {
+                console.error("Error pausing video:", e);
+            }
+        }
+
+        // Set up swipe gestures for mobile
+        function setupSwipeGestures() {
+            const videoFeed = document.getElementById('videoFeed');
+            let startY = 0;
+            let isScrolling = false;
+
+            videoFeed.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+                isScrolling = true;
+            }, { passive: true });
+
+            videoFeed.addEventListener('touchmove', (e) => {
+                if (!isScrolling) return;
+                const y = e.touches[0].clientY;
+                const dy = y - startY;
+                
+                if (Math.abs(dy) > 10) {
+                    isScrolling = true;
+                }
+            }, { passive: true });
+
+            videoFeed.addEventListener('touchend', (e) => {
+                if (!isScrolling) return;
+                const endY = e.changedTouches[0].clientY;
+                const dy = endY - startY;
+                
+                if (Math.abs(dy) > 50) {
+                    if (dy > 0 && currentVideoIndex > 0) {
+                        // Swipe down - go to previous video
+                        scrollToVideo(currentVideoIndex - 1);
+                    } else if (dy < 0 && currentVideoIndex < loadedVideos - 1) {
+                        // Swipe up - go to next video
+                        scrollToVideo(currentVideoIndex + 1);
+                    }
+                }
+                isScrolling = false;
+            }, { passive: true });
+        }
+
+        // Scroll to a specific video
+        function scrollToVideo(index, shouldPlay = false) {
+            if (index >= 0 && index < videoElements.length && videoElements[index]) {
+                // Pause current video first
+                if (videoIframes[currentVideoIndex]) {
+                    try {
+                        videoIframes[currentVideoIndex].contentWindow.postMessage(
+                            '{"event":"command","func":"pauseVideo","args":""}', '*'
+                        );
+                    } catch (e) {
+                        console.log("Couldn't pause current video");
+                    }
+                }
+                
+                currentVideoIndex = index;
+                videoElements[index].scrollIntoView({ behavior: 'smooth' });
+                
+                if (shouldPlay) {
+                    setTimeout(() => {
+                        playVideo(index);
+                    }, 500);
+                }
+            }
+        }
+
+        // Stop all videos
+        function stopAllVideos() {
+            for (let i = 0; i < videoIframes.length; i++) {
+                if (videoIframes[i]) {
+                    try {
+                        videoIframes[i].contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                        videoIframes[i].contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
+                    } catch (e) {
+                        console.log("Couldn't stop video", i);
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
